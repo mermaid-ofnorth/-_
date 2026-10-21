@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СПОРТквиз — интеллектуальная игра</title>
+<style>
+  :root{
+    --bg:#0b1a33; --bg2:#12254a; --accent:#ff7a18; --accent2:#ffb347;
+    --white:#ffffff; --muted:#9fb3d1; --green:#2ecc71; --yellow:#f1c40f;
+    --red:#e74c3c; --card:#16294f; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI', Roboto, Arial, sans-serif;
+    background:radial-gradient(circle at 20% 10%, #17305c 0%, var(--bg) 60%);
+    color:var(--white); min-height:100vh; display:flex; align-items:center;
+    justify-content:center; padding:16px; overflow-x:hidden;
+  }
+  .app{width:100%; max-width:960px;}
+  .screen{display:none; animation:fade .35s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;}}
+
+  /* ---------- Титул ---------- */
+  .hero{text-align:center; padding:40px 20px;}
+  .hero h1{
+    font-size:clamp(2.4rem,8vw,4.5rem); letter-spacing:4px; font-weight:900;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-transform:uppercase;
+  }
+  .hero .sub{color:var(--muted); margin-top:8px; font-size:1.05rem;}
+  .hero .meta{
+    display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:26px 0 32px;
+  }
+  .chip{
+    background:var(--card); border:1px solid #23406e; border-radius:999px;
+    padding:8px 18px; font-size:.9rem; color:var(--accent2);
+  }
+  .icons{font-size:2.4rem; letter-spacing:12px; margin-bottom:10px;}
+
+  /* ---------- Кнопки ---------- */
+  .btn{
+    background:linear-gradient(135deg,var(--accent),#ff9a3c); color:#1a0f00;
+    border:none; border-radius:14px; padding:16px 38px; font-size:1.1rem;
+    font-weight:800; cursor:pointer; letter-spacing:1px; text-transform:uppercase;
+    box-shadow:0 6px 22px rgba(255,122,24,.35); transition:transform .15s, box-shadow .15s;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 10px 28px rgba(255,122,24,.5);}
+  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none;}
+  .btn.ghost{
+    background:transparent; color:var(--accent2); border:2px solid #2c4a7a;
+    box-shadow:none;
+  }
+  .btn.ghost:hover{border-color:var(--accent);}
+  .btn-row{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:24px;}
+
+  /* ---------- Правила ---------- */
+  .panel{
+    background:var(--card); border:1px solid #23406e; border-radius:20px;
+    padding:30px; box-shadow:var(--shadow);
+  }
+  .panel h2{
+    font-size:1.6rem; margin-bottom:18px; color:var(--accent2);
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  .panel ul{list-style:none;}
+  .panel li{
+    padding:10px 0 10px 30px; position:relative; border-bottom:1px solid #1c3a66;
+    color:#dbe6f5; font-size:1rem; line-height:1.5;
+  }
+  .panel li:last-child{border-bottom:none;}
+  .panel li::before{content:'▸'; position:absolute; left:4px; color:var(--accent); font-weight:900;}
+  .badge{display:inline-block; padding:2px 9px; border-radius:8px; font-weight:700; font-size:.85rem;}
+  .b-g{background:var(--green); color:#06280f;}
+  .b-y{background:var(--yellow); color:#3a2c00;}
+  .b-r{background:var(--red); color:#fff;}
+
+  /* ---------- Прогресс раундов ---------- */
+  .progress{display:flex; gap:6px; margin:18px 0 4px;}
+  .progress .dot{
+    flex:1; height:6px; border-radius:4px; background:#1c3a66; transition:background .3s;
+  }
+  .progress .dot.done{background:var(--accent);}
+  .progress .dot.current{background:var(--accent2); box-shadow:0 0 12px var(--accent2);}
+
+  /* ---------- Игровой экран ---------- */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:16px; gap:10px; flex-wrap:wrap;
+  }
+  .round-label{color:var(--accent2); font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:.9rem;}
+  .q-counter{color:var(--muted); font-size:.9rem;}
+
+  .card{
+    background:linear-gradient(160deg,#1a3159,#12254a); border:1px solid #2a4a7d;
+    border-radius:22px; padding:34px 28px; box-shadow:var(--shadow); min-height:300px;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .q-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;}
+  .q-text{font-size:clamp(1.15rem,3.2vw,1.7rem); line-height:1.45; font-weight:600;}
+  .q-media{
+    margin-top:18px; padding:22px; border:2px dashed #2f5488; border-radius:14px;
+    text-align:center; color:var(--muted); font-size:.9rem;
+  }
+
+  /* ---------- Таймер ---------- */
+  .timer{
+    display:flex; align-items:center; gap:10px; margin-top:22px;
+    font-size:1.4rem; font-weight:800; color:var(--accent2);
+  }
+  .timer-bar{flex:1; height:10px; background:#1c3a66; border-radius:6px; overflow:hidden;}
+  .timer-fill{height:100%; width:100%; background:linear-gradient(90deg,var(--green),var(--yellow)); transition:width 1s linear;}
+  .timer-fill.danger{background:linear-gradient(90deg,var(--red),#ff7a18);}
+
+  /* ---------- Ответ ---------- */
+  .answer-title{color:var(--green); font-size:clamp(1.3rem,4vw,2rem); font-weight:900; margin-bottom:14px;}
+  .answer-fact{color:var(--muted); font-size:1rem; line-height:1.55; margin-bottom:18px;}
+  .discuss{background:#0f2144; border-left:4px solid var(--accent); border-radius:10px; padding:14px 18px; color:#cfe0f7; font-size:.95rem;}
+
+  /* ---------- Финал ---------- */
+  .final h2{font-size:2rem; text-align:center; color:var(--accent2); margin-bottom:10px;}
+  .final .sub{text-align:center; color:var(--muted); margin-bottom:24px;}
+  .reflect{display:grid; gap:12px; margin:20px 0;}
+  .reflect .item{background:#0f2144; border-radius:12px; padding:14px 18px; border-left:4px solid var(--accent);}
+  .one-word{text-align:center; margin-top:22px; color:var(--accent2); font-weight:700; font-size:1.05rem;}
+
+  .hint{color:var(--muted); font-size:.85rem; text-align:center; margin-top:14px;}
+  @media(max-width:560px){
+    .panel{padding:20px;}
+    .card{padding:22px 16px;}
+    .btn{padding:14px 26px; font-size:1rem;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ЭКРАН 1: ТИТУЛ -->
+  <section class="screen active" id="s-title">
+    <div class="hero">
+      <div class="icons">🏅⚽🏀🎾⛷️</div>
+      <h1>СПОРТквиз</h1>
+      <p class="sub">Тематическая интеллектуальная игра по физической культуре</p>
+      <div class="meta">
+        <span class="chip">7 раундов</span>
+        <span class="chip">42 вопроса</span>
+        <span class="chip">80 минут</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="showRules()">Начать игру</button>
+      </div>
+      <p class="hint">Команды по 3–4 человека · 4–6 команд</p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН 2: ПРАВИЛА -->
+  <section class="screen" id="s-rules">
+    <div class="panel">
+      <h2>Как играем</h2>
+      <ul>
+        <li>Команды по 3–4 человека: <b>капитан, спикер, аналитик, хранитель времени</b>.</li>
+        <li>Стоимость вопроса: <span class="badge b-g">🟢 1</span> · <span class="badge b-y">🟡 2</span> · <span class="badge b-r">🔴 3</span> балла.</li>
+        <li>Бонус скорости: первой ответившей верно команде <b>+1 балл</b>.</li>
+        <li>Штраф за подсказку или списывание: <b>−2 балла</b>.</li>
+        <li>«Спасение»: 1 раз за игру можно заморозить вопрос (0 баллов вместо штрафа).</li>
+        <li>Побеждает команда с наибольшим числом баллов.</li>
+      </ul>
+      <div class="progress" id="progress-rules"></div>
+      <div class="btn-row">
+        <button class="btn" onclick="startGame()">Поехали!</button>
+        <button class="btn ghost" onclick="showScreen('s-title')">Назад</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ЭКРАН 3: ИГРА -->
+  <section class="screen" id="s-game">
+    <div class="topbar">
+      <div>
+        <div class="round-label" id="round-label">Раунд 1</div>
+        <div class="q-counter" id="q-counter">Вопрос 1 из 6</div>
+      </div>
+      <div class="progress" id="progress-game" style="flex:1; max-width:420px;"></div>
+    </div>
+
+    <div class="card" id="card">
+      <!-- Заполняется JS -->
+    </div>
+
+    <div class="btn-row" id="game-actions">
+      <button class="btn" id="btn-next" onclick="nextStep()">Далее</button>
+    </div>
+    <p class="hint" id="game-hint">Ответы сдаются на бланках · модератор фиксирует баллы</p>
+  </section>
+
+  <!-- ЭКРАН 4: ФИНАЛ -->
+  <section class="screen" id="s-final">
+    <div class="panel final">
+      <h2>🏆 Финал!</h2>
+      <p class="sub">Поздравляем победителей! Объявите таблицу лидеров.</p>
+      <div class="reflect">
+        <div class="item">Как знание правил помогает в игре?</div>
+        <div class="item">Как понимание ЗОЖ влияет на тренировки?</div>
+        <div class="item">Что изменится в твоём поведении после игры?</div>
+      </div>
+      <p class="one-word">Одно слово — что забираешь из игры?</p>
+      <div class="btn-row">
+        <button class="btn" onclick="restart()">Играть снова</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ================= ДАННЫЕ ИГРЫ ================= */
+const rounds = [
+  {
+    name: "Олимп: начало начал",
+    topic: "История Олимпийских игр",
+    questions: [
+      { lvl:1, text:"В каком городе Древней Греции проводились античные Олимпийские игры?", answer:"Олимпия", fact:"Игры шли в святилище Зевса — отсюда название." },
+      { lvl:2, text:"В каком году прошли первые современные Олимпийские игры?", answer:"1896 год", fact:"Афины, Греция. Инициатор — Пьер де Кубертен." },
+      { lvl:2, text:"Что символизируют пять олимпийских колец?", answer:"Пять континентов", fact:"Цвета колец + белый фон — цвета флагов всех стран." },
+      { lvl:3, text:"Как назывался перерыв в античных Играх, во время которого прекращались войны?", answer:"Олимпийское перемирие (экехерия)", fact:"Традиция возрождена ООН в 1990-х." },
+      { lvl:3, text:"В каком году и городе Олимпийские игры впервые прошли в России?", answer:"2014, Сочи", fact:"Первые зимние Игры в России." },
+      { lvl:2, text:"Кто считается инициатором возрождения современных Олимпийских игр?", answer:"Пьер де Кубертен", fact:"Французский педагог и общественный деятель." }
+    ]
+  },
+  {
+    name: "Правила игры",
+    topic: "Правила спортивных игр",
+    questions: [
+      { lvl:1, text:"Сколько игроков одной команды одновременно находится на площадке в волейболе?", answer:"6 игроков", fact:"В команде до 14 человек, на площадке — 6, идёт ротация." },
+      { lvl:1, text:"Сколько очков даётся за попадание в кольцо из-за трёхочковой линии в баскетболе?", answer:"3 очка", fact:"Штрафной — 1, из зоны — 2." },
+      { lvl:2, text:"Что означает «офсайд» в футболе?", answer:"Положение вне игры", fact:"Игрок атаки ближе к воротам соперника, чем мяч и предпоследний защитник; фиксируется в момент передачи." },
+      { lvl:2, text:"Сколько минут длится стандартный хоккейный матч без овертайма?", answer:"60 минут", fact:"Три периода по 20 минут, чистое время." },
+      { lvl:3, text:"В каком виде спорта используется термин «брейк-поинт»?", answer:"Теннис", fact:"Шанс взять подачу соперника; в волейболе есть «сет-бол»." },
+      { lvl:3, text:"Сколько замен разрешено в футболе в официальных матчах по текущим правилам ФИФА? ⚠️ уточнить", answer:"До 5 замен в 3 окнах", fact:"Правило менялось — проверьте актуальную редакцию." }
+    ]
+  },
+  {
+    name: "Спортивный язык",
+    topic: "Терминология",
+    questions: [
+      { lvl:1, text:"Что такое «разминка» и зачем она нужна?", answer:"Подготовка организма к нагрузке", fact:"Разогрев мышц, профилактика травм." },
+      { lvl:2, text:"Назови пять основных физических качеств.", answer:"Сила, быстрота, выносливость, гибкость, ловкость", fact:"Ловкость = координация." },
+      { lvl:2, text:"Что означает термин «выносливость»?", answer:"Способность длительно выполнять работу без снижения эффективности", fact:"Одно из пяти физических качеств." },
+      { lvl:3, text:"«Пируэт», «тулуп», «аксель» — в каком виде спорта?", answer:"Фигурное катание", fact:"Аксель — единственный прыжок с хода вперёд." },
+      { lvl:3, text:"Что такое МПК (максимальное потребление кислорода)?", answer:"Показатель аэробной производительности", fact:"Ключевой показатель для выносливости." },
+      { lvl:1, text:"Как называется перерыв между периодами в хоккее?", answer:"Перерыв (15–17 минут)", fact:"Между периодами команды отдыхают и меняют стороны." }
+    ]
+  },
+  {
+    name: "Легенды спорта",
+    topic: "Знаменитые атлеты",
+    questions: [
+      { lvl:1, text:"Какой боксёр носил прозвище «Железный Майк»?", answer:"Майк Тайсон", fact:"Абсолютный чемпион мира в тяжёлом весе." },
+      { lvl:2, text:"Кто из российских теннисистов побеждал на турнирах Большого шлема и был первой ракеткой мира?", answer:"Сафин, Шарапова, Кафельников, Медведев", fact:"Принимается любой верный ответ." },
+      { lvl:2, text:"Какой спортсмен установил мировой рекорд в беге на 100 м — 9,58 с? ⚠️ уточнить", answer:"Усэйн Болт, 2009", fact:"Мировой рекорд до настоящего времени." },
+      { lvl:3, text:"Самый титулованный олимпиец в истории по числу золотых медалей — кто? ⚠️ уточнить", answer:"Майкл Фелпс (23 золота)", fact:"Плавание, США." },
+      { lvl:2, text:"Какой советский лыжник — 4-кратный олимпийский чемпион?", answer:"Николай Зимятов", fact:"Герой зимних Игр 1980 и 1984 годов." },
+      { lvl:1, text:"Какой вид спорта называют «королевой спорта»?", answer:"Лёгкая атлетика", fact:"Включает бег, прыжки, метания." }
+    ]
+  },
+  {
+    name: "ЗОЖ-лаборатория",
+    topic: "Питание, режим, тренировки",
+    questions: [
+      { lvl:1, text:"Миф или правда: «Нужно пить 8 стаканов воды строго каждый день»?", answer:"Миф", fact:"Потребность индивидуальна: ориентир — жажда, нагрузка, климат." },
+      { lvl:1, text:"Миф или правда: «Завтрак обязателен для всех»?", answer:"Не универсально", fact:"Важен общий режим и качество рациона." },
+      { lvl:2, text:"Кейс: перед тренировкой ученик не ел 6 часов. Что может произойти и как правильно?", answer:"Риск гипогликемии, слабость; лёгкий перекус за 1–1,5 ч", fact:"Сложные углеводы перед нагрузкой." },
+      { lvl:2, text:"Миф или правда: «Статическая растяжка до тренировки предотвращает травмы»?", answer:"Спорно", fact:"Динамическая разминка эффективнее статической растяжки." },
+      { lvl:3, text:"Кейс: спортсмен тренируется ежедневно без дней отдыха. Оцените режим.", answer:"Риск перетренированности", fact:"Нужны восстановление и сон 8–9 часов." },
+      { lvl:3, text:"Что такое «углеводное окно» и насколько оно критично? ⚠️ уточнить", answer:"Период после нагрузки для восполнения гликогена", fact:"Важен общий суточный рацион." }
+    ]
+  },
+  {
+    name: "Спорт-факт и мем",
+    topic: "Блиц со ставками",
+    questions: [
+      { lvl:1, text:"Сколько клеток на шахматной доске?", answer:"64", fact:"Шахматы — вид спорта." },
+      { lvl:2, text:"Какой мяч тяжелее: футбольный или баскетбольный?", answer:"Баскетбольный", fact:"~600 г против ~430 г." },
+      { lvl:2, text:"Правда ли, что в синхронном плавании спортсменки не слышат музыку под водой?", answer:"Правда", fact:"Слушают по динамикам над водой, ориентируются на счёт." },
+      { lvl:1, text:"Какой вид спорта называют «королевой спорта»?", answer:"Лёгкая атлетика", fact:"Бег, прыжки, метания." },
+      { lvl:3, text:"Правда ли, что олимпийские медали 1896 года были из серебра и бронзы? ⚠️ уточнить", answer:"Да", fact:"Золото ввели с 1904 года." },
+      { lvl:2, text:"«Пельмень», «свеча», «бабочка» — какие виды спорта объединяют эти термины?", answer:"Плавание, футбол, борьба/гимнастика", fact:"Уточнить по контексту." },
+      { lvl:1, text:"Сколько игроков в команде по баскетболу на площадке?", answer:"5", fact:"В заявке до 12 игроков." },
+      { lvl:2, text:"Что означает «хет-трик» в футболе?", answer:"Три гола одного игрока в матче", fact:"Термин пришёл из крикета." }
+    ]
+  },
+  {
+    name: "Финальный рывок",
+    topic: "Вопрос-аукцион",
+    questions: [
+      { lvl:3, text:"Как знание правила «трёх секунд» в баскетболе влияет на тактику атаки?", answer:"Нельзя находиться в чужой зоне >3 с — нужно двигаться", fact:"Интеграция правил и тактики." },
+      { lvl:3, text:"Объясни, почему разминка связана с профилактикой травм (механизм).", answer:"Повышение температуры мышц, эластичность, кровоток", fact:"Нервно-мышечная готовность." },
+      { lvl:3, text:"Приведи пример, как понимание ЗОЖ меняет план тренировок.", answer:"Режим сна, питания, восстановления → перенос нагрузки", fact:"Практика." },
+      { lvl:3, text:"Назови 3 источника достоверной информации о спорте и ЗОЖ.", answer:"Официальные федерации, ВОЗ, научные журналы", fact:"Медиаграмотность." }
+    ]
+  }
+];
+
+/* ================= СОСТОЯНИЕ ================= */
+let rIdx = 0;       // индекс раунда
+let qIdx = 0;       // индекс вопроса
+let phase = 'question'; // 'question' | 'answer'
+let timerId = null;
+let timeLeft = 0;
+const TIME = 45;    // секунд на вопрос
+
+/* ================= НАВИГАЦИЯ ================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function showRules(){
+  buildProgress('progress-rules', 0);
+  showScreen('s-rules');
+}
+function startGame(){
+  rIdx = 0; qIdx = 0; phase = 'question';
+  showScreen('s-game');
+  render();
+}
+function restart(){
+  stopTimer();
+  showScreen('s-title');
+}
+
+/* ================= ПРОГРЕСС ================= */
+function buildProgress(containerId, current){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  for(let i=0;i<rounds.length;i++){
+    const d = document.createElement('div');
+    d.className = 'dot';
+    if(i < current) d.classList.add('done');
+    if(i === current) d.classList.add('current');
+    el.appendChild(d);
+  }
+}
+
+/* ================= РЕНДЕР ================= */
+function render(){
+  const round = rounds[rIdx];
+  const q = round.questions[qIdx];
+  const card = document.getElementById('card');
+  const btn = document.getElementById('btn-next');
+  const hint = document.getElementById('game-hint');
+
+  document.getElementById('round-label').textContent =
+    `Раунд ${rIdx+1}. ${round.name}`;
+  document.getElementById('q-counter').textContent =
+    `Вопрос ${qIdx+1} из ${round.questions.length}`;
+  buildProgress('progress-game', rIdx);
+
+  if(phase === 'question'){
+    const badge = q.lvl === 1 ? '<span class="badge b-g">🟢 1 балл</span>'
+                : q.lvl === 2 ? '<span class="badge b-y">🟡 2 балла</span>'
+                : '<span class="badge b-r">🔴 3 балла</span>';
+    card.innerHTML = `
+      <div class="q-meta">
+        <span style="color:var(--muted); font-size:.9rem;">${round.topic}</span>
+        ${badge}
+      </div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-media">📺 Место для медиа: видео ≤40 с / аудио 10–15 с / изображение</div>
+      <div class="timer">
+        <span>⏱</span>
+        <div class="timer-bar"><div class="timer-fill" id="timer-fill"></div></div>
+        <span id="timer-num">${TIME} с</span>
+      </div>
+    `;
+    btn.textContent = 'Показать ответ';
+    hint.textContent = 'Ответы сдаются на бланках · модератор фиксирует баллы';
+    startTimer();
+  } else {
+    card.innerHTML = `
+      <div class="answer-title">✅ Ответ: ${q.answer}</div>
+      <div class="answer-fact">${q.fact}</div>
+      <div class="discuss">💬 Обсуждение: что из этого вопроса пригодится на практике?</div>
+    `;
+    btn.textContent = (qIdx < round.questions.length - 1) ? 'Следующий вопрос' : 'Следующий раунд';
+    hint.textContent = 'Начислите баллы командам в таблице лидеров';
+    stopTimer();
+  }
+}
+
+/* ================= ТАЙМЕР ================= */
+function startTimer(){
+  stopTimer();
+  timeLeft = TIME;
+  const fill = document.getElementById('timer-fill');
+  const num = document.getElementById('timer-num');
+  if(!fill || !num) return;
+  fill.style.width = '100%';
+  fill.classList.remove('danger');
+  timerId = setInterval(() => {
+    timeLeft--;
+    if(timeLeft <= 0){
+      stopTimer();
+      num.textContent = '0 с';
+      fill.style.width = '0%';
+      fill.classList.add('danger');
+      return;
+    }
+    num.textContent = timeLeft + ' с';
+    fill.style.width = (timeLeft / TIME * 100) + '%';
+    if(timeLeft <= 10) fill.classList.add('danger');
+  }, 1000);
+}
+function stopTimer(){
+  if(timerId){ clearInterval(timerId); timerId = null; }
+}
+
+/* ================= ПЕРЕХОД ================= */
+function nextStep(){
+  const round = rounds[rIdx];
+  if(phase === 'question'){
+    phase = 'answer';
+    render();
+    return;
+  }
+  // phase === 'answer'
+  if(qIdx < round.questions.length - 1){
+    qIdx++;
+    phase = 'question';
+    render();
+  } else if(rIdx < rounds.length - 1){
+    rIdx++;
+    qIdx = 0;
+    phase = 'question';
+    render();
+  } else {
+    stopTimer();
+    showScreen('s-final');
+  }
+}
+
+/* ================= КЛАВИАТУРА ================= */
+document.addEventListener('keydown', e => {
+  if(document.getElementById('s-game').classList.contains('active')){
+    if(e.code === 'Space' || e.code === 'ArrowRight'){
+      e.preventDefault();
+      nextStep();
+    }
+  }
+});
+</script>
+</body>
+</html>
